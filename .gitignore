@@ -18,6 +18,13 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Python junk
+*.pyc
+/build
+/dist
+/oldCode
+/keyFiles
+.spyproject*
 # =========================
 # Operating System Files
 # =========================
