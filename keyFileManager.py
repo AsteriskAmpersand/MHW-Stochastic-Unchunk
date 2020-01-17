@@ -40,6 +40,11 @@ class KeyFile():
                 kf = open(keyFilePath,"rb")
             self.range, self.keys = self.readKeyFile(kf)            
             
+    def __getitem__(self,ix):
+        return self.keys[ix-self.range.start]    
+    def __setitem__(self,ix,value):
+        self.keys[ix-self.range.start] = value   
+            
     @staticmethod
     def readKeyFile(keyFileData, access = "read"):        
         start = int.from_bytes(getattr(keyFileData,access)(4),"little")

@@ -10,6 +10,11 @@ import operator
 from decryption import decrypt
 from fileSignatures import FileSignatureManager
 from itertools import cycle
+from keyFileManager import KeyFile
+from decryptChunk import pathFromIx, chunkCount
+import multiprocessing
+from multiprocessing import Pool
+threadCount = multiprocessing.cpu_count()
 
 def testSpeedDecrypt(bkey,block):
     for subblock in grouper(16, block):
@@ -78,7 +83,7 @@ def recalcFileSize(fileSizeInChunk, boffset):
     else:
         return fileSizeInChunk
 
-fileSignatures = FileSignatureManager()#TODO write signature manager
+fileSignatures = FileSignatureManager()
 def analyzeData(fileData,block):
     isHeader, offset, encryption, signature, fileSizeInChunk = fileData
     candidates = set()
@@ -105,7 +110,7 @@ def analyzeData(fileData,block):
     return candidates
 
 def informedDecrypt(block, blockIx):
-    filesInChunk = fileSignatures(blockIx)
+    filesInChunk = fileSignatures[blockIx]
     candidates = set(byteKeys)
     for fileData in filesInChunk:
         candidatum = analyzeData(fileData,block)
@@ -118,4 +123,36 @@ def informedDecrypt(block, blockIx):
     else:
         return candidates[0]
 
+knownKeys = KeyFile(keyFilePath = r"E:\MHW Ghetto Unchunk\data\mergedKeys.key")
+theorizedKeys = KeyFile(keyFilePath = r"E:\MHW Ghetto Unchunk\data\keygen.key")
+def parallelDecrypt(ix):
+    if not(ix%1000):
+        print("Chunk: %06d/%06d"%(ix,chunkCount))
+    keygenKey = theorizedKeys[ix+1]
+    knownKey = knownKeys[ix+1]
+    #last known correct keygen 199672
+    if knownKey < 0:
+        blockf = open(pathFromIx(ix+1),"rb")
+        block = blockf.read()
+        blockf.close()
+        knownKey = informedDecrypt(block,ix)
+        knownKeys[ix+1] = knownKey
+    if keygenKey != knownKey and knownKey >= 0:
+        print("Keygen Mismatch %d/%d %d"%(keygenKey,knownKey,ix+1))
+        raise ValueError
+    
+def decryptChunks():
+    for i in range(0,chunkCount-1):
+        parallelDecrypt(i)
+    
+def decryptChunksParallel():
+    pool = Pool(processes=threadCount)
+    pool.imap_unordered(parallelDecrypt,range(0 ,chunkCount-1))
+    pool.close()
+    pool.join()        
+        
+if __name__ == "__main__":
+    decryptChunks()
+    knownKeys.writeKeyFile(r"E:\MHW Ghetto Unchunk\data\KnownKeys.key")
+    knownKeys.writeCsv(r"E:\MHW Ghetto Unchunk\data\KnownKeys.csv")
         

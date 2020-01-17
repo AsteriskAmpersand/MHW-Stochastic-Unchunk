@@ -26,7 +26,7 @@ def loadKnownSignatures():
             if data["Signature"] != '':
                 if data["Encrypted"]=="TRUE" and not data["Key"]:
                     continue
-                knownExtensions["."+data["Format"]]=(readStringBytes(data["Signature"]),bytes(data["Key"]))
+                knownExtensions["."+data["Format"]]=(readStringBytes(data["Signature"]),bytes(data["Key"],"utf-8"))
     return knownExtensions
 
 class FileData():
@@ -58,7 +58,7 @@ class FileSignatureManager():
                 data = {h:r for h,r in zip(header,row)}
                 data["Extension"] = Path(data["FileAddress"]).suffix
                 if data["Extension"] in self.signatures:
-                    total += self.createDataEntry(data)                
+                    total += self.createDataEntries(data)                
         self.data = sorted(total,key = lambda x: x.chunkIndex)
         self.dataLookups = {}
         for entry in self.data:
@@ -66,13 +66,13 @@ class FileSignatureManager():
                 self.dataLookups = []
             self.dataLookups.append(entry)
                 
-    def createDataEntries(dataDic):
+    def createDataEntries(self,dataDic):
         address = dataDic["FileAddress"]
         extension = dataDic["Extension"]
-        currentChunk = dataDic["ChunkIndex"]
-        baseOffset = dataDic["OffsetInSingleChunk"]
-        currentOffset = dataDic["OffsetInSingleChunk"]
-        sizeLeft = dataDic["FileSize(B)"]
+        currentChunk = int(dataDic["ChunkIndex"])
+        baseOffset = int(dataDic["OffsetInSingleChunk"])
+        currentOffset = int(dataDic["OffsetInSingleChunk"])
+        sizeLeft = int(dataDic["FileSize(B)"])
         header = True
         dataEntries = []
         while sizeLeft:
@@ -84,7 +84,7 @@ class FileSignatureManager():
             currentChunk += 1
         return dataEntries
     
-    def __get__(self,chunkindex):
+    def __getitem__(self,chunkindex):
         if chunkindex in self.dataLookups:
             return map(lambda x: x.decompose(), self.dataLookups[chunkindex])
         else:
