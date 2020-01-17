@@ -79,4 +79,5 @@ def unencryptChunk(outf):
 #with open("%s\chunkG0.pkg"%chunkPath,"wb") as outf:
 #    unencryptChunk(outf)
 if __name__ == "__main__":
-    parallelUnencryptChunk()
+    #parallelUnencryptChunk()
+    pass

@@ -71,8 +71,11 @@ def snipeDecrypt(signature,cbkey,block, encryption):
 
 def testSpeedInformedDecrypt(cbkey, block, encryption):
     for subblock in grouper(16, block):
-        cypdec = byte_xor(cbkey,subblock)
-        dec = decrypt(cypdec,encryption)
+        crypdec = byte_xor(cbkey,subblock)
+        if encryption:
+            dec = decrypt(crypdec,encryption)
+        else:
+            dec = crypdec
         if dec == zeroBytes:
             return True
     return False
@@ -104,7 +107,7 @@ def analyzeData(fileData,block):
             boffset = offset%0x10
             nblock = block[boffset:recalcFileSize(fileSizeInChunk,boffset)]
             test = testSpeedInformedDecrypt
-        decrypts = test(cbkey, nblock)
+        decrypts = test(cbkey, nblock,encryption)
         if decrypts:
             candidates.add(byteKeyIndices[bkey])
     return candidates
@@ -137,9 +140,9 @@ def parallelDecrypt(ix):
         blockf.close()
         knownKey = informedDecrypt(block,ix)
         knownKeys[ix+1] = knownKey
-    if keygenKey != knownKey and knownKey >= 0:
-        print("Keygen Mismatch %d/%d %d"%(keygenKey,knownKey,ix+1))
-        raise ValueError
+    #if keygenKey != knownKey and knownKey >= 0:
+        #print("Keygen Mismatch %d/%d %d"%(keygenKey,knownKey,ix+1))
+        #raise ValueError
     
 def decryptChunks():
     for i in range(0,chunkCount-1):

@@ -63,8 +63,8 @@ class FileSignatureManager():
         self.dataLookups = {}
         for entry in self.data:
             if entry.chunkIndex not in self.dataLookups:
-                self.dataLookups = []
-            self.dataLookups.append(entry)
+                self.dataLookups[entry.chunkIndex] = []
+            self.dataLookups[entry.chunkIndex].append(entry)
                 
     def createDataEntries(self,dataDic):
         address = dataDic["FileAddress"]
