@@ -5,6 +5,9 @@ Created on Wed Jan 15 17:22:13 2020
 @author: AsteriskAmpersand
 """
 from functools import partial
+from pathlib import Path
+import csv
+import sys
 
 class ListAsFile():
     def __init__(self,listing):
@@ -28,9 +31,9 @@ class Interval():
         return self.end - self.start
     
 class KeyFile():
-    def __init__(self,start = 1, end = 234735, keys = [], keyFilePath = r"", keyData = []):
+    def __init__(self,start = 1, keys = [], keyFilePath = r"", keyData = []):
         if keyFilePath == r"" and not keyData:
-            assert len(keys) == end-start+1
+            end = start + len(keys)
             self.range = Interval(start,end)
             self.keys = keys
         else:
@@ -121,3 +124,30 @@ class KeyifyList(object):
 
     def __getitem__(self, k):
         return self.key(self.inner[k])
+    
+def keyFromCsv(csvFilePath):
+    with open(csvFilePath,"r") as csvFile:
+        reader = csv.reader(csvFile)
+        start, okey = next(reader)
+        keys = [int(okey)]+[int(keying) for ix,keying in reader]
+        start = int(start) + 1
+        kf = KeyFile(start,keys)
+        return kf
+    
+def csvToKey(csvFilePath):
+    kf = keyFromCsv(csvFilePath)
+    kf.writeKeyFile(csvFilePath.with_suffix(".key"))
+    
+def keyToCsv(keyFilePath):
+    kf = KeyFile(keyFilePath = keyFilePath)
+    kf.writeCsv(keyFilePath.with_suffix(".csv"))
+    
+if __name__ == "__main__":
+    #sys.argv.append(r"E:\MHW Ghetto Unchunk\Tests\KnownKeys.key")
+    if not (len(sys.argv)<2):
+        conversionFile = Path(sys.argv[1])
+        if conversionFile.suffix in [".key"]:
+            keyToCsv(conversionFile)
+        else:
+            csvToKey(conversionFile)
+    

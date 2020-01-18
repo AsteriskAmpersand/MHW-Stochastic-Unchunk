@@ -48,26 +48,42 @@ class keygen():
         self.pattern = cycle(basePattern)
         self.ninteenNoise = cycle(nineteenNoise)
         next(self.pattern)  
-        self.noise = noiseLayer        
+        self.noise = noiseLayer     
+        
+        self.p = 0
+        self.n = 0
+        self.l = 1
     
     def __next__(self):
         if self.ix == -1:
+            self.anterior = -1
             self.ix = 0
             return 0
         if self.ix == 0:
+            self.anterior = 0
             self.ix = 1
             return 1
-        p = next(self.pattern)
-        n = self.noise(self.ix)
-        l = next(self.ninteenNoise)
-        key, self.prev = keyStep(self.prev,p+n+l)
+        self.p = next(self.pattern)
+        self.n = self.noise(self.ix)
+        self.l = next(self.ninteenNoise)
+        self.anterior = self.prev
+        key, self.prev = keyStep(self.prev,self.p+self.n+self.l)
         self.ix+=1  
         return key
     def __iter__(self):
         return self
     def ammend(self,key):
         self.prev = key
+    def __repr__(self):
+        return "Key %02d | Pattern %d | 19/20 Noise %d"%(bunnieHops[self.anterior],self.p,self.l)
 
+def outputKeygenStates():
+    g = keygen()
+    next(g)
+    with open(r"E:\MHW Ghetto Unchunk\data\keygenStates.txt","w") as outfile:
+        for _ in range(240000):
+            outfile.write(str(g)+"\n")
+            next(g)
 
 def keygenChunk():
     chunkCount = 234736
