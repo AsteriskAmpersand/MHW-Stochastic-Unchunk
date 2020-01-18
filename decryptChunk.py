@@ -10,6 +10,7 @@ from bunnieHopKeygen import keygen
 from keys import byteKeys
 from decryption import byte_xor
 from pathlib import Path
+from itertools import cycle
 import multiprocessing
 from multiprocessing import Pool
 from keyFileManager import KeyFile
@@ -24,11 +25,9 @@ def decryptedFromIx(ix):
     return r"%s\chunk_%08d_dcrpt.dbin"%(chunkPath,ix)
 
 blockKeys = [bkey*0x4000 for bkey in byteKeys]
-def blockXor(bkey,block):
-    return byte_xor(bkey,block)
 
 def xorDecrypt(bkey,block):
-    return blockXor(bkey,block)
+    return byte_xor(cycle(bkey),block)
 
 def generateKeyseq():
     genFunc = keygen()
@@ -44,11 +43,12 @@ def readKeyseq(infpath):
     keys = KeyFile(keyFilePath=infpath)
     return keys.keys
 
-def parallelDecrypt(ix):
+def parallelDecrypt(ix, key = None):
     if not(ix%1000):
         print("Chunk: %06d/%06d"%(ix,chunkCount))
     pix = ix+1
-    key = blockKeys[keyseq[ix]]
+    if key is None:
+        key = blockKeys[keyseq[ix]]
     with open(decryptedFromIx(pix),"wb") as outf:
         with open(pathFromIx(pix),"rb") as chonk:
                 outf.write(xorDecrypt(key,chonk.read()))

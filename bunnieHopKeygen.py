@@ -16,41 +16,58 @@ def keyStep(prev, step):
 
 def noiseLayer(x):
     """Plus to the step"""
-    layers = [not((x - (x//200)) % 19),
-              -int(not(x % 3792)),
-              -int(not(x % 82107)),
-              not(x % 200539),
+    layers = [#-int(not(x % 3792)),
+              #-int(not(x % 82107)),
+              #not(x % 200539),
               ]
     return  sum(layers)
 
-basePattern =   (0, 0, 1, 0, 1)*16 + (0, 1)+\
-                (0, 0, 1, 0, 1)*15 + (0, 1)+\
-                (0, 0, 1, 0, 1)*15 + (0, 1)+\
-                (0, 0, 1, 0, 1)*16 + (0, 1)+\
-                (0, 0, 1, 0, 1)*15 + (0, 1)+\
-                (0, 0, 1, 0, 1)*15 + (0, 1)+\
-                (0, 0, 1, 0, 1)*16 + (0, 1)+\
-                (0, 0, 1, 0, 1)*15 + (0, 1)+\
-                (0, 0, 1, 0, 1)*15 + (0, 1)+\
-                (0, 0, 1, 0, 1)*15 + (0, 1)
+def rootPattern(ix):
+    return (0, 0, 1, 0, 1)*ix + (0, 1)
 
-def keyEngine():
-    ix = 1
-    prev = 14
-    pattern = cycle(basePattern)
-    next(pattern)    
-    noise = noiseLayer
-    while True:
-        key, prev = keyStep(prev,next(pattern) + noise(ix))
-        ix+=1        
-        yield key
+def ljoin(head,seq):
+    total = []
+    for ele in seq:
+        total += head+ele
+    return total
+
+def seqToRoot(seq):
+    return ljoin(rootPattern(16),map(lambda x: x*rootPattern(15),seq))
     
-def keygen():
-    engine = keyEngine()
-    yield 0
-    yield 1
-    while True:
-        yield next(engine)
+basePattern = sum(map(seqToRoot,[(2,2,3)*3,(2,3,2)*3,(3,2,2)*3]),[])
+
+def spacing(i):
+    return [0]*(i-1) + [1]
+
+nineteenNoise = spacing(19)*10 + spacing(20) + spacing(19)*9 + spacing(20)
+
+class keygen():
+    def __init__(self):
+        self.ix = -1
+        self.prev = 14
+        self.pattern = cycle(basePattern)
+        self.ninteenNoise = cycle(nineteenNoise)
+        next(self.pattern)  
+        self.noise = noiseLayer        
+    
+    def __next__(self):
+        if self.ix == -1:
+            self.ix = 0
+            return 0
+        if self.ix == 0:
+            self.ix = 1
+            return 1
+        p = next(self.pattern)
+        n = self.noise(self.ix)
+        l = next(self.ninteenNoise)
+        key, self.prev = keyStep(self.prev,p+n+l)
+        self.ix+=1  
+        return key
+    def __iter__(self):
+        return self
+    def ammend(self,key):
+        self.prev = key
+
 
 def keygenChunk():
     chunkCount = 234736
@@ -62,5 +79,6 @@ def keygenChunk():
 if __name__ in "__main__":
     kf = keygenChunk()
     kf.writeKeyFile(r"E:\MHW Ghetto Unchunk\data\keygen.key")
+    kf.writeCsv(r"E:\MHW Ghetto Unchunk\data\keygen.csv")
     
         

@@ -6,15 +6,17 @@ Created on Wed Jan 15 22:54:01 2020
 """
 from keys import byteKeys, byteKeyIndices
 from decryption import byte_xor, zeroBytes, grouper
-import operator
 from decryption import decrypt
 from fileSignatures import FileSignatureManager
-from itertools import cycle
 from keyFileManager import KeyFile
 from decryptChunk import pathFromIx, chunkCount
+from bunnieHopKeygen import keygen
+
+import operator
+from itertools import cycle
 import multiprocessing
 from multiprocessing import Pool
-threadCount = multiprocessing.cpu_count()
+threadCount = multiprocessing.cpu_count()-3
 
 def testSpeedDecrypt(bkey,block):
     for subblock in grouper(16, block):
@@ -128,21 +130,35 @@ def informedDecrypt(block, blockIx):
 
 knownKeys = KeyFile(keyFilePath = r"E:\MHW Ghetto Unchunk\data\mergedKeys.key")
 theorizedKeys = KeyFile(keyFilePath = r"E:\MHW Ghetto Unchunk\data\keygen.key")
+
+def rangeCheckDecryptChunks():
+    generator = keygen()
+    lastKnownCorrect = 1
+    for i in range(0,chunkCount-1):#10000):
+        keygenKey = next(generator)
+        knownKey = knownKeys[i+1]
+        if knownKey >= 0:
+            if keygenKey != knownKey:
+                print("Keygen Mismatch %d/%d %d-%d"%(
+                        keygenKey,knownKey,lastKnownCorrect,i+1))
+                generator.ammend(knownKey)
+            lastKnownCorrect = i+1
+
 def parallelDecrypt(ix):
     if not(ix%1000):
         print("Chunk: %06d/%06d"%(ix,chunkCount))
     keygenKey = theorizedKeys[ix+1]
     knownKey = knownKeys[ix+1]
     #last known correct keygen 199672
-    if knownKey < 0:
-        blockf = open(pathFromIx(ix+1),"rb")
-        block = blockf.read()
-        blockf.close()
-        knownKey = informedDecrypt(block,ix)
-        knownKeys[ix+1] = knownKey
-    #if keygenKey != knownKey and knownKey >= 0:
-        #print("Keygen Mismatch %d/%d %d"%(keygenKey,knownKey,ix+1))
-        #raise ValueError
+    #if knownKey < 0:
+        #blockf = open(pathFromIx(ix+1),"rb")
+        #block = blockf.read()
+        #blockf.close()
+        #knownKey = informedDecrypt(block,ix)
+        #knownKeys[ix+1] = knownKey
+    if keygenKey != knownKey and knownKey >= 0:
+        print("Keygen Mismatch %d/%d %d"%(keygenKey,knownKey,ix+1))
+        raise ValueError
     
 def decryptChunks():
     for i in range(0,chunkCount-1):
@@ -155,7 +171,7 @@ def decryptChunksParallel():
     pool.join()        
         
 if __name__ == "__main__":
-    decryptChunks()
+    rangeCheckDecryptChunks()
     knownKeys.writeKeyFile(r"E:\MHW Ghetto Unchunk\data\KnownKeys.key")
     knownKeys.writeCsv(r"E:\MHW Ghetto Unchunk\data\KnownKeys.csv")
         
